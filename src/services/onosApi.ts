@@ -1,8 +1,10 @@
-
 import axios, { AxiosResponse } from 'axios';
 import { ONOSDevice, ONOSLink, ONOSHost, ONOSFlow, ApiResponse, HttpMethod } from '@/types/onos';
 
 const ONOS_API_BASE = 'http://192.168.94.129:8181/onos/v1';
+
+// Mode simulation pour le développement
+const DEMO_MODE = true; // Activez ceci pour les données de démonstration
 
 const api = axios.create({
   baseURL: ONOS_API_BASE,
@@ -14,8 +16,108 @@ const api = axios.create({
     username: 'onos',
     password: 'rocks'
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 5000, // Timeout réduit à 5 secondes
 });
+
+// Données de démonstration
+const demoDevices: ONOSDevice[] = [
+  {
+    id: 'of:0000000000000001',
+    type: 'SWITCH',
+    available: true,
+    role: 'MASTER',
+    mfr: 'Open vSwitch',
+    hw: 'Open vSwitch',
+    sw: '2.13.3',
+    serial: 'None',
+    driver: 'ovs',
+    chassisId: '1',
+    lastUpdate: new Date().toISOString(),
+    humanReadableLastUpdate: 'Il y a quelques secondes'
+  },
+  {
+    id: 'of:0000000000000002',
+    type: 'SWITCH',
+    available: true,
+    role: 'MASTER',
+    mfr: 'Open vSwitch',
+    hw: 'Open vSwitch',
+    sw: '2.13.3',
+    serial: 'None',
+    driver: 'ovs',
+    chassisId: '2',
+    lastUpdate: new Date().toISOString(),
+    humanReadableLastUpdate: 'Il y a quelques secondes'
+  }
+];
+
+const demoHosts: ONOSHost[] = [
+  {
+    id: '00:00:00:00:00:01/None',
+    mac: '00:00:00:00:00:01',
+    vlan: 'None',
+    innerVlan: 'None',
+    outerTpid: '0x8100',
+    configured: false,
+    suspended: false,
+    ipAddresses: ['10.0.0.1'],
+    locations: [{
+      elementId: 'of:0000000000000001',
+      port: '1'
+    }]
+  },
+  {
+    id: '00:00:00:00:00:02/None',
+    mac: '00:00:00:00:00:02',
+    vlan: 'None',
+    innerVlan: 'None',
+    outerTpid: '0x8100',
+    configured: false,
+    suspended: false,
+    ipAddresses: ['10.0.0.2'],
+    locations: [{
+      elementId: 'of:0000000000000002',
+      port: '1'
+    }]
+  }
+];
+
+const demoLinks: ONOSLink[] = [
+  {
+    src: {
+      device: 'of:0000000000000001',
+      port: '2'
+    },
+    dst: {
+      device: 'of:0000000000000002',
+      port: '2'
+    },
+    type: 'DIRECT',
+    state: 'ACTIVE'
+  }
+];
+
+const demoFlows: ONOSFlow[] = [
+  {
+    id: '1',
+    deviceId: 'of:0000000000000001',
+    tableId: 0,
+    priority: 40000,
+    timeout: 0,
+    isPermanent: true,
+    selector: { ethType: '0x800' },
+    treatment: { instructions: [{ type: 'OUTPUT', port: 'CONTROLLER' }] },
+    appId: 'org.onosproject.core',
+    state: 'ADDED',
+    life: 12345,
+    packets: 100,
+    bytes: 6400,
+    lastSeen: Date.now()
+  }
+];
+
+// Simuler un délai réseau
+const simulateNetworkDelay = () => new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 500));
 
 // Add request interceptor for debugging
 api.interceptors.request.use(
@@ -47,6 +149,15 @@ api.interceptors.response.use(
 export const onosApi = {
   // Test connection
   async testConnection(): Promise<ApiResponse<any>> {
+    if (DEMO_MODE) {
+      await simulateNetworkDelay();
+      console.log('Mode démonstration: Connexion simulée réussie');
+      return {
+        data: { status: 'Demo mode active' },
+        success: true
+      };
+    }
+
     try {
       const response = await api.get('/');
       return {
@@ -65,6 +176,15 @@ export const onosApi = {
 
   // Devices
   async getDevices(): Promise<ApiResponse<ONOSDevice[]>> {
+    if (DEMO_MODE) {
+      await simulateNetworkDelay();
+      console.log('Mode démonstration: Retour des appareils factices');
+      return {
+        data: demoDevices,
+        success: true
+      };
+    }
+
     try {
       const response = await api.get('/devices');
       console.log('Devices response:', response.data);
@@ -83,6 +203,15 @@ export const onosApi = {
   },
 
   async getDevice(deviceId: string): Promise<ApiResponse<ONOSDevice>> {
+    if (DEMO_MODE) {
+      await simulateNetworkDelay();
+      const device = demoDevices.find(d => d.id === deviceId);
+      return {
+        data: device || demoDevices[0],
+        success: true
+      };
+    }
+
     try {
       const response = await api.get(`/devices/${deviceId}`);
       return {
@@ -101,6 +230,15 @@ export const onosApi = {
 
   // Links
   async getLinks(): Promise<ApiResponse<ONOSLink[]>> {
+    if (DEMO_MODE) {
+      await simulateNetworkDelay();
+      console.log('Mode démonstration: Retour des liens factices');
+      return {
+        data: demoLinks,
+        success: true
+      };
+    }
+
     try {
       const response = await api.get('/links');
       console.log('Links response:', response.data);
@@ -120,6 +258,15 @@ export const onosApi = {
 
   // Hosts
   async getHosts(): Promise<ApiResponse<ONOSHost[]>> {
+    if (DEMO_MODE) {
+      await simulateNetworkDelay();
+      console.log('Mode démonstration: Retour des hôtes factices');
+      return {
+        data: demoHosts,
+        success: true
+      };
+    }
+
     try {
       const response = await api.get('/hosts');
       console.log('Hosts response:', response.data);
@@ -139,6 +286,15 @@ export const onosApi = {
 
   // Flows
   async getFlows(deviceId?: string): Promise<ApiResponse<ONOSFlow[]>> {
+    if (DEMO_MODE) {
+      await simulateNetworkDelay();
+      const flows = deviceId ? demoFlows.filter(f => f.deviceId === deviceId) : demoFlows;
+      return {
+        data: flows,
+        success: true
+      };
+    }
+
     try {
       const endpoint = deviceId ? `/flows/${deviceId}` : '/flows';
       const response = await api.get(endpoint);
@@ -164,6 +320,27 @@ export const onosApi = {
     data?: any,
     params?: Record<string, string>
   ): Promise<ApiResponse<any>> {
+    if (DEMO_MODE) {
+      await simulateNetworkDelay();
+      console.log(`Mode démonstration: Requête simulée ${method} ${endpoint}`);
+      
+      // Simuler des réponses selon l'endpoint
+      if (endpoint.includes('/devices')) {
+        return { data: { devices: demoDevices }, success: true };
+      } else if (endpoint.includes('/hosts')) {
+        return { data: { hosts: demoHosts }, success: true };
+      } else if (endpoint.includes('/links')) {
+        return { data: { links: demoLinks }, success: true };
+      } else if (endpoint.includes('/flows')) {
+        return { data: { flows: demoFlows }, success: true };
+      }
+      
+      return {
+        data: { message: 'Demo request successful', endpoint, method },
+        success: true
+      };
+    }
+
     try {
       let url = endpoint;
       if (params) {

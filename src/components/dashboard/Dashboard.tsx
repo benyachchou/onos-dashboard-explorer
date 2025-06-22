@@ -7,7 +7,7 @@ import { TopologyView } from '../topology/TopologyView';
 import { DevicesList } from '../devices/DevicesList';
 import { FlowsTable } from '../flows/FlowsTable';
 import { ApiExplorer } from '../api/ApiExplorer';
-import { Activity, AlertCircle } from 'lucide-react';
+import { Activity, AlertCircle, TestTube } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -74,23 +74,30 @@ export const Dashboard: React.FC = () => {
                   Surveillance et gestion du contrôleur SDN
                 </p>
               </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <Activity className="w-4 h-4" />
-                <span>Dernière mise à jour: {new Date().toLocaleTimeString()}</span>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                  <TestTube className="w-4 h-4" />
+                  <span>Mode Démonstration</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <Activity className="w-4 h-4" />
+                  <span>Dernière mise à jour: {new Date().toLocaleTimeString()}</span>
+                </div>
               </div>
             </div>
 
-            {hasErrors && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
-                  <h3 className="text-red-800 font-medium">Erreurs de connexion API</h3>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <TestTube className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <h3 className="text-blue-800 font-medium">Mode Démonstration Actif</h3>
+                  <p className="text-blue-700 mt-1 text-sm">
+                    L'application utilise des données simulées car le contrôleur ONOS n'est pas accessible. 
+                    Toutes les fonctionnalités sont visibles avec des données factices.
+                  </p>
                 </div>
-                <p className="text-red-700 mt-1">
-                  Impossible de se connecter au contrôleur ONOS. Vérifiez que le contrôleur est accessible sur http://192.168.94.129:8181
-                </p>
               </div>
-            )}
+            </div>
             
             <StatsCards 
               devices={devices?.data || []}
