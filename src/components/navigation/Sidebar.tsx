@@ -54,6 +54,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
     }
   ];
 
+  const handleMenuClick = (itemId: string) => {
+    setActiveTab(itemId);
+    
+    // Dispatch custom event to notify Dashboard component
+    const event = new CustomEvent('navigate-to', {
+      detail: { view: itemId }
+    });
+    window.dispatchEvent(event);
+  };
+
   return (
     <div className={cn(
       "bg-white border-r border-gray-200 transition-all duration-300 shadow-lg",
@@ -94,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => handleMenuClick(item.id)}
                 className={cn(
                   "w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200",
                   isActive 
