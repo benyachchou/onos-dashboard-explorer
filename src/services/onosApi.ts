@@ -1,10 +1,11 @@
+
 import axios, { AxiosResponse } from 'axios';
 import { ONOSDevice, ONOSLink, ONOSHost, ONOSFlow, ApiResponse, HttpMethod } from '@/types/onos';
 
 const ONOS_API_BASE = 'http://192.168.94.129:8181/onos/v1';
 
-// Mode simulation pour le développement
-const DEMO_MODE = true; // Activez ceci pour les données de démonstration
+// Mode simulation désactivé pour utiliser l'API réelle
+const DEMO_MODE = false;
 
 const api = axios.create({
   baseURL: ONOS_API_BASE,
@@ -16,7 +17,7 @@ const api = axios.create({
     username: 'onos',
     password: 'rocks'
   },
-  timeout: 5000, // Timeout réduit à 5 secondes
+  timeout: 10000, // Augmenté à 10 secondes
 });
 
 // Données de démonstration
@@ -131,7 +132,7 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for debugging
+// Add response interceptor for debugging and CORS handling
 api.interceptors.response.use(
   (response) => {
     console.log(`API response received: ${response.status} ${response.config.url}`);
@@ -140,8 +141,14 @@ api.interceptors.response.use(
   (error) => {
     console.error('Response error:', error);
     if (error.code === 'ERR_NETWORK') {
-      console.error('Network error - check if ONOS controller is running and accessible');
+      console.error('Network error - this might be a CORS issue or network connectivity problem');
     }
+    
+    // Fallback to demo data if real API fails
+    if (!DEMO_MODE) {
+      console.warn('API call failed, falling back to demo data for this request');
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -160,6 +167,7 @@ export const onosApi = {
 
     try {
       const response = await api.get('/');
+      console.log('Connection test successful:', response.data);
       return {
         data: response.data,
         success: true
@@ -169,7 +177,7 @@ export const onosApi = {
       return {
         data: null,
         success: false,
-        error: 'Failed to connect to ONOS controller'
+        error: 'Failed to connect to ONOS controller - check CORS configuration'
       };
     }
   },
@@ -187,17 +195,25 @@ export const onosApi = {
 
     try {
       const response = await api.get('/devices');
-      console.log('Devices response:', response.data);
+      console.log('Real devices response:', response.data);
+      
+      // Transform the response to match our interface
+      const devices = response.data.devices?.map((device: any) => ({
+        ...device,
+        lastUpdate: new Date().toISOString(),
+        humanReadableLastUpdate: 'Mis à jour maintenant'
+      })) || [];
+
       return {
-        data: response.data.devices || [],
+        data: devices,
         success: true
       };
     } catch (error) {
-      console.error('Error fetching devices:', error);
+      console.error('Error fetching real devices, falling back to demo data:', error);
       return {
-        data: [],
+        data: demoDevices,
         success: false,
-        error: 'Failed to fetch devices'
+        error: 'Failed to fetch devices from ONOS API - using demo data'
       };
     }
   },
@@ -214,16 +230,22 @@ export const onosApi = {
 
     try {
       const response = await api.get(`/devices/${deviceId}`);
+      console.log('Real device response:', response.data);
       return {
-        data: response.data,
+        data: {
+          ...response.data,
+          lastUpdate: new Date().toISOString(),
+          humanReadableLastUpdate: 'Mis à jour maintenant'
+        },
         success: true
       };
     } catch (error) {
-      console.error('Error fetching device:', error);
+      console.error('Error fetching real device, falling back to demo data:', error);
+      const device = demoDevices.find(d => d.id === deviceId);
       return {
-        data: {} as ONOSDevice,
+        data: device || demoDevices[0],
         success: false,
-        error: 'Failed to fetch device'
+        error: 'Failed to fetch device from ONOS API - using demo data'
       };
     }
   },
@@ -241,17 +263,17 @@ export const onosApi = {
 
     try {
       const response = await api.get('/links');
-      console.log('Links response:', response.data);
+      console.log('Real links response:', response.data);
       return {
         data: response.data.links || [],
         success: true
       };
     } catch (error) {
-      console.error('Error fetching links:', error);
+      console.error('Error fetching real links, falling back to demo data:', error);
       return {
-        data: [],
+        data: demoLinks,
         success: false,
-        error: 'Failed to fetch links'
+        error: 'Failed to fetch links from ONOS API - using demo data'
       };
     }
   },
@@ -269,17 +291,17 @@ export const onosApi = {
 
     try {
       const response = await api.get('/hosts');
-      console.log('Hosts response:', response.data);
+      console.log('Real hosts response:', response.data);
       return {
         data: response.data.hosts || [],
         success: true
       };
     } catch (error) {
-      console.error('Error fetching hosts:', error);
+      console.error('Error fetching real hosts, falling back to demo data:', error);
       return {
-        data: [],
+        data: demoHosts,
         success: false,
-        error: 'Failed to fetch hosts'
+        error: 'Failed to fetch hosts from ONOS API - using demo data'
       };
     }
   },
@@ -298,17 +320,18 @@ export const onosApi = {
     try {
       const endpoint = deviceId ? `/flows/${deviceId}` : '/flows';
       const response = await api.get(endpoint);
-      console.log('Flows response:', response.data);
+      console.log('Real flows response:', response.data);
       return {
         data: response.data.flows || [],
         success: true
       };
     } catch (error) {
-      console.error('Error fetching flows:', error);
+      console.error('Error fetching real flows, falling back to demo data:', error);
+      const flows = deviceId ? demoFlows.filter(f => f.deviceId === deviceId) : demoFlows;
       return {
-        data: [],
+        data: flows,
         success: false,
-        error: 'Failed to fetch flows'
+        error: 'Failed to fetch flows from ONOS API - using demo data'
       };
     }
   },
@@ -349,7 +372,7 @@ export const onosApi = {
         });
       }
 
-      console.log(`Custom request: ${method} ${url}`, data);
+      console.log(`Real custom request: ${method} ${url}`, data);
 
       let response: AxiosResponse;
       switch (method) {
@@ -374,11 +397,11 @@ export const onosApi = {
         success: true
       };
     } catch (error) {
-      console.error('Error executing custom request:', error);
+      console.error('Error executing real custom request:', error);
       return {
         data: null,
         success: false,
-        error: 'Failed to execute request'
+        error: 'Failed to execute request on ONOS API'
       };
     }
   },
@@ -386,14 +409,14 @@ export const onosApi = {
   // Topology data
   async getTopologyData(): Promise<ApiResponse<any>> {
     try {
-      console.log('Fetching topology data...');
+      console.log('Fetching real topology data...');
       const [devicesRes, linksRes, hostsRes] = await Promise.all([
         this.getDevices(),
         this.getLinks(),
         this.getHosts()
       ]);
 
-      console.log('Topology results:', { devicesRes, linksRes, hostsRes });
+      console.log('Real topology results:', { devicesRes, linksRes, hostsRes });
 
       return {
         data: {
@@ -401,14 +424,18 @@ export const onosApi = {
           links: linksRes.data,
           hosts: hostsRes.data
         },
-        success: true
+        success: devicesRes.success && linksRes.success && hostsRes.success
       };
     } catch (error) {
-      console.error('Error fetching topology data:', error);
+      console.error('Error fetching real topology data:', error);
       return {
-        data: null,
+        data: {
+          devices: demoDevices,
+          links: demoLinks,
+          hosts: demoHosts
+        },
         success: false,
-        error: 'Failed to fetch topology data'
+        error: 'Failed to fetch topology data from ONOS API - using demo data'
       };
     }
   }
