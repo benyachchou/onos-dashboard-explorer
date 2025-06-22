@@ -1,11 +1,16 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from 'react';
+import { Sidebar } from '@/components/navigation/Sidebar';
+import { Dashboard } from '@/components/dashboard/Dashboard';
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="flex w-full">
+        <Sidebar />
+        <main className="flex-1 overflow-hidden">
+          <Dashboard />
+        </main>
       </div>
     </div>
   );
