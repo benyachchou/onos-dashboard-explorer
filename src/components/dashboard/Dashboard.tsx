@@ -12,26 +12,49 @@ import { Activity, AlertCircle } from 'lucide-react';
 export const Dashboard: React.FC = () => {
   const [activeView, setActiveView] = useState('dashboard');
 
-  // Fetch dashboard data
-  const { data: devices, isLoading: devicesLoading } = useQuery({
+  // Fetch dashboard data with error handling
+  const { data: devices, isLoading: devicesLoading, error: devicesError } = useQuery({
     queryKey: ['devices'],
     queryFn: () => onosApi.getDevices(),
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
+    retry: 3,
+    retryDelay: 1000,
   });
 
-  const { data: hosts, isLoading: hostsLoading } = useQuery({
+  const { data: hosts, isLoading: hostsLoading, error: hostsError } = useQuery({
     queryKey: ['hosts'],
     queryFn: () => onosApi.getHosts(),
     refetchInterval: 30000,
+    retry: 3,
+    retryDelay: 1000,
   });
 
-  const { data: links, isLoading: linksLoading } = useQuery({
+  const { data: links, isLoading: linksLoading, error: linksError } = useQuery({
     queryKey: ['links'],
     queryFn: () => onosApi.getLinks(),
     refetchInterval: 30000,
+    retry: 3,
+    retryDelay: 1000,
   });
 
+  // Listen for navigation changes
+  useEffect(() => {
+    const handleNavigation = (event: CustomEvent) => {
+      console.log('Navigation event received:', event.detail.view);
+      setActiveView(event.detail.view);
+    };
+
+    window.addEventListener('navigate-to', handleNavigation as EventListener);
+    return () => {
+      window.removeEventListener('navigate-to', handleNavigation as EventListener);
+    };
+  }, []);
+
+  const hasErrors = devicesError || hostsError || linksError;
+
   const renderContent = () => {
+    console.log('Rendering view:', activeView);
+    
     switch (activeView) {
       case 'topology':
         return <TopologyView />;
@@ -56,6 +79,18 @@ export const Dashboard: React.FC = () => {
                 <span>Dernière mise à jour: {new Date().toLocaleTimeString()}</span>
               </div>
             </div>
+
+            {hasErrors && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <h3 className="text-red-800 font-medium">Erreurs de connexion API</h3>
+                </div>
+                <p className="text-red-700 mt-1">
+                  Impossible de se connecter au contrôleur ONOS. Vérifiez que le contrôleur est accessible sur http://192.168.94.129:8181
+                </p>
+              </div>
+            )}
             
             <StatsCards 
               devices={devices?.data || []}
@@ -79,18 +114,6 @@ export const Dashboard: React.FC = () => {
         );
     }
   };
-
-  // Listen for navigation changes
-  React.useEffect(() => {
-    const handleNavigation = (event: CustomEvent) => {
-      setActiveView(event.detail.view);
-    };
-
-    window.addEventListener('navigate-to', handleNavigation as EventListener);
-    return () => {
-      window.removeEventListener('navigate-to', handleNavigation as EventListener);
-    };
-  }, []);
 
   return (
     <div className="flex-1 overflow-auto">
