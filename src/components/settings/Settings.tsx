@@ -44,14 +44,21 @@ export const Settings: React.FC = () => {
     setTesting(true);
     try {
       const testUrl = `http://${ipAddress}:${port}/onos/v1/`;
+      
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(testUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Basic ' + btoa('onos:rocks')
         },
-        timeout: 5000
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         toast({
@@ -62,9 +69,15 @@ export const Settings: React.FC = () => {
         throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
+      let errorMessage = `Impossible de se connecter à ${ipAddress}:${port}`;
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        errorMessage = `Timeout: Impossible de se connecter à ${ipAddress}:${port}`;
+      }
+      
       toast({
         title: "Échec de la connexion",
-        description: `Impossible de se connecter à ${ipAddress}:${port}`,
+        description: errorMessage,
         variant: "destructive"
       });
     }
