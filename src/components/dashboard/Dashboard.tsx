@@ -21,29 +21,29 @@ export const Dashboard: React.FC = () => {
     retry: 1,
   });
 
-  // Fetch dashboard data with shorter intervals for real-time updates
+  // Fetch dashboard data with real-time updates
   const { data: devices, isLoading: devicesLoading, error: devicesError } = useQuery({
     queryKey: ['devices'],
     queryFn: () => onosApi.getDevices(),
-    refetchInterval: 5000, // Mise à jour toutes les 5 secondes
-    retry: 2,
-    retryDelay: 1000,
+    refetchInterval: 3000, // Mise à jour toutes les 3 secondes
+    retry: 3,
+    retryDelay: 2000,
   });
 
   const { data: hosts, isLoading: hostsLoading, error: hostsError } = useQuery({
     queryKey: ['hosts'],
     queryFn: () => onosApi.getHosts(),
-    refetchInterval: 5000,
-    retry: 2,
-    retryDelay: 1000,
+    refetchInterval: 3000,
+    retry: 3,
+    retryDelay: 2000,
   });
 
   const { data: links, isLoading: linksLoading, error: linksError } = useQuery({
     queryKey: ['links'],
     queryFn: () => onosApi.getLinks(),
-    refetchInterval: 5000,
-    retry: 2,
-    retryDelay: 1000,
+    refetchInterval: 3000,
+    retry: 3,
+    retryDelay: 2000,
   });
 
   // Update connection status based on API responses
@@ -67,7 +67,7 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   const hasErrors = devicesError || hostsError || linksError;
-  const isUsingRealData = devices?.success && hosts?.success && links?.success;
+  const hasData = devices?.success && hosts?.success && links?.success;
 
   const renderContent = () => {
     console.log('Rendering view:', activeView);
@@ -116,53 +116,57 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {!isUsingRealData && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            {hasErrors && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                   <div>
-                    <h3 className="text-yellow-800 font-medium">Données de secours utilisées</h3>
-                    <p className="text-yellow-700 mt-1 text-sm">
+                    <h3 className="text-red-800 font-medium">Erreur de connexion</h3>
+                    <p className="text-red-700 mt-1 text-sm">
                       Impossible de récupérer les données du contrôleur ONOS. Vérifiez que le contrôleur est accessible 
-                      et que les politiques CORS sont configurées correctement.
+                      à l'adresse 192.168.94.129:8181 et que les politiques CORS sont configurées correctement.
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {isUsingRealData && (
+            {hasData && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
                   <Wifi className="w-5 h-5 text-green-600 mt-0.5" />
                   <div>
                     <h3 className="text-green-800 font-medium">Données en temps réel</h3>
                     <p className="text-green-700 mt-1 text-sm">
-                      Connecté au contrôleur ONOS. Les données sont mises à jour automatiquement toutes les 5 secondes.
+                      Connecté au contrôleur ONOS. Les données sont mises à jour automatiquement toutes les 3 secondes.
                     </p>
                   </div>
                 </div>
               </div>
             )}
-            
-            <StatsCards 
-              devices={devices?.data || []}
-              hosts={hosts?.data || []}
-              links={links?.data || []}
-              loading={devicesLoading || hostsLoading || linksLoading}
-            />
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold mb-4">Aperçu de la Topologie</h3>
-                <TopologyView compact />
-              </div>
-              
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold mb-4">Appareils Récents</h3>
-                <DevicesList compact />
-              </div>
-            </div>
+
+            {!hasErrors && (
+              <>            
+                <StatsCards 
+                  devices={devices?.data || []}
+                  hosts={hosts?.data || []}
+                  links={links?.data || []}
+                  loading={devicesLoading || hostsLoading || linksLoading}
+                />
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold mb-4">Aperçu de la Topologie</h3>
+                    <TopologyView compact />
+                  </div>
+                  
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold mb-4">Appareils Récents</h3>
+                    <DevicesList compact />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         );
     }
