@@ -2,17 +2,22 @@
 import axios, { AxiosResponse } from 'axios';
 import { ONOSDevice, ONOSLink, ONOSHost, ONOSFlow, ApiResponse, HttpMethod } from '@/types/onos';
 
-// Configuration dynamique
+// Configuration dynamique avec logs de débogage
 const getOnosBaseUrl = (): string => {
   const savedIP = localStorage.getItem('onos-controller-ip') || '192.168.94.129';
   const savedPort = localStorage.getItem('onos-controller-port') || '8181';
-  return `http://${savedIP}:${savedPort}/onos/v1`;
+  const baseUrl = `http://${savedIP}:${savedPort}/onos/v1`;
+  console.log('Getting ONOS base URL:', baseUrl);
+  return baseUrl;
 };
 
 // Créer l'instance axios avec configuration dynamique
 const createApiInstance = () => {
+  const baseURL = getOnosBaseUrl();
+  console.log('Creating API instance with baseURL:', baseURL);
+  
   return axios.create({
-    baseURL: getOnosBaseUrl(),
+    baseURL,
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
@@ -27,16 +32,24 @@ const createApiInstance = () => {
 
 let api = createApiInstance();
 
-// Écouter les changements de configuration
-window.addEventListener('onos-config-changed', () => {
-  console.log('ONOS configuration changed, recreating API instance');
+// Écouter les changements de configuration avec logs améliorés
+window.addEventListener('onos-config-changed', (event) => {
+  console.log('ONOS configuration changed event received:', event);
+  console.log('Event detail:', (event as CustomEvent).detail);
   api = createApiInstance();
+  console.log('API instance recreated with new configuration');
 });
 
 // Add request interceptor for debugging
 api.interceptors.request.use(
   (config) => {
-    console.log(`Making API request: ${config.method?.toUpperCase()} ${config.url}`);
+    console.log(`Making API request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    console.log('Request config:', {
+      baseURL: config.baseURL,
+      url: config.url,
+      method: config.method,
+      headers: config.headers
+    });
     return config;
   },
   (error) => {

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { RequestBuilder } from './RequestBuilder';
 import { ResponseViewer } from './ResponseViewer';
 import { CollectionManager } from './CollectionManager';
@@ -21,17 +22,51 @@ export interface ApiCollection {
   requests: ApiRequest[];
 }
 
+const getDefaultUrl = () => {
+  const savedIP = localStorage.getItem('onos-controller-ip') || '192.168.94.129';
+  const savedPort = localStorage.getItem('onos-controller-port') || '8181';
+  return `http://${savedIP}:${savedPort}/onos/v1/`;
+};
+
 export const PostmanInterface: React.FC = () => {
-  const [activeRequest, setActiveRequest] = useState<ApiRequest | null>(null);
+  const [activeRequest, setActiveRequest] = useState<ApiRequest>(() => ({
+    id: Date.now().toString(),
+    name: 'Nouvelle Requête',
+    method: 'GET',
+    url: getDefaultUrl(),
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+  }));
   const [response, setResponse] = useState<any>(null);
   const [collections, setCollections] = useState<ApiCollection[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Listen for ONOS config changes to update default URL
+  useEffect(() => {
+    const handleConfigChange = () => {
+      console.log('ONOS config changed in PostmanInterface');
+      const newUrl = getDefaultUrl();
+      if (activeRequest && activeRequest.url.includes('/onos/v1/')) {
+        setActiveRequest(prev => ({
+          ...prev,
+          url: newUrl
+        }));
+      }
+    };
+
+    window.addEventListener('onos-config-changed', handleConfigChange);
+    return () => {
+      window.removeEventListener('onos-config-changed', handleConfigChange);
+    };
+  }, [activeRequest]);
 
   const createNewRequest = (): ApiRequest => ({
     id: Date.now().toString(),
     name: 'Nouvelle Requête',
     method: 'GET',
-    url: 'http://192.168.94.129:8181/onos/v1/',
+    url: getDefaultUrl(),
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
@@ -39,6 +74,7 @@ export const PostmanInterface: React.FC = () => {
   });
 
   const handleNewRequest = () => {
+    console.log('Creating new request');
     const newRequest = createNewRequest();
     setActiveRequest(newRequest);
     setResponse(null);
@@ -140,8 +176,8 @@ export const PostmanInterface: React.FC = () => {
         <TabsContent value="builder" className="flex-1">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             <RequestBuilder
-              request={activeRequest || createNewRequest()}
-              onSave={handleSaveRequest}
+              request={activeRequest}
+              onSave={setActiveRequest}
               onExecute={handleExecuteRequest}
               loading={loading}
             />
