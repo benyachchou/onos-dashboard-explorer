@@ -2,19 +2,35 @@
 import axios, { AxiosResponse } from 'axios';
 import { ONOSDevice, ONOSLink, ONOSHost, ONOSFlow, ApiResponse, HttpMethod } from '@/types/onos';
 
-const ONOS_API_BASE = 'http://192.168.94.129:8181/onos/v1';
+// Configuration dynamique
+const getOnosBaseUrl = (): string => {
+  const savedIP = localStorage.getItem('onos-controller-ip') || '192.168.94.129';
+  const savedPort = localStorage.getItem('onos-controller-port') || '8181';
+  return `http://${savedIP}:${savedPort}/onos/v1`;
+};
 
-const api = axios.create({
-  baseURL: ONOS_API_BASE,
-  headers: {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-  },
-  auth: {
-    username: 'onos',
-    password: 'rocks'
-  },
-  timeout: 15000,
+// Créer l'instance axios avec configuration dynamique
+const createApiInstance = () => {
+  return axios.create({
+    baseURL: getOnosBaseUrl(),
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    auth: {
+      username: 'onos',
+      password: 'rocks'
+    },
+    timeout: 15000,
+  });
+};
+
+let api = createApiInstance();
+
+// Écouter les changements de configuration
+window.addEventListener('onos-config-changed', () => {
+  console.log('ONOS configuration changed, recreating API instance');
+  api = createApiInstance();
 });
 
 // Add request interceptor for debugging
@@ -29,7 +45,6 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor for debugging
 api.interceptors.response.use(
   (response) => {
     console.log(`API response received: ${response.status} ${response.config.url}`, response.data);
@@ -64,13 +79,11 @@ export const onosApi = {
     }
   },
 
-  // Devices
   async getDevices(): Promise<ApiResponse<ONOSDevice[]>> {
     try {
       const response = await api.get('/devices');
       console.log('Real devices response:', response.data);
       
-      // Transform the response to match our interface
       const devices = response.data.devices?.map((device: any) => ({
         ...device,
         lastUpdate: new Date().toISOString(),
@@ -105,7 +118,6 @@ export const onosApi = {
     }
   },
 
-  // Links
   async getLinks(): Promise<ApiResponse<ONOSLink[]>> {
     try {
       const response = await api.get('/links');
@@ -120,7 +132,6 @@ export const onosApi = {
     }
   },
 
-  // Hosts
   async getHosts(): Promise<ApiResponse<ONOSHost[]>> {
     try {
       const response = await api.get('/hosts');
@@ -135,7 +146,6 @@ export const onosApi = {
     }
   },
 
-  // Flows
   async getFlows(deviceId?: string): Promise<ApiResponse<ONOSFlow[]>> {
     try {
       const endpoint = deviceId ? `/flows/${deviceId}` : '/flows';
@@ -151,7 +161,6 @@ export const onosApi = {
     }
   },
 
-  // Custom API request
   async customRequest(
     method: HttpMethod,
     endpoint: string,
@@ -196,7 +205,6 @@ export const onosApi = {
     }
   },
 
-  // Topology data
   async getTopologyData(): Promise<ApiResponse<any>> {
     try {
       console.log('Fetching real topology data...');

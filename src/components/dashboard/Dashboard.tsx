@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { onosApi } from '@/services/onosApi';
@@ -7,6 +6,7 @@ import { TopologyView } from '../topology/TopologyView';
 import { DevicesList } from '../devices/DevicesList';
 import { FlowsTable } from '../flows/FlowsTable';
 import { ApiExplorer } from '../api/ApiExplorer';
+import { Settings } from '../settings/Settings';
 import { Activity, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
@@ -81,6 +81,8 @@ export const Dashboard: React.FC = () => {
         return <FlowsTable />;
       case 'api':
         return <ApiExplorer />;
+      case 'settings':
+        return <Settings />;
       default:
         return (
           <div className="space-y-6">
@@ -123,8 +125,8 @@ export const Dashboard: React.FC = () => {
                   <div>
                     <h3 className="text-red-800 font-medium">Erreur de connexion</h3>
                     <p className="text-red-700 mt-1 text-sm">
-                      Impossible de récupérer les données du contrôleur ONOS. Vérifiez que le contrôleur est accessible 
-                      à l'adresse 192.168.94.129:8181 et que les politiques CORS sont configurées correctement.
+                      Impossible de récupérer les données du contrôleur ONOS. Vérifiez la configuration 
+                      dans les paramètres ou que le contrôleur est accessible.
                     </p>
                   </div>
                 </div>
